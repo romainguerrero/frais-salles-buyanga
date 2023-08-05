@@ -1,0 +1,66 @@
+#!/bin/bash
+
+# Redirect output to stderr.
+exec 1>&2
+
+# Color codes
+red=`tput setaf 1`
+green=`tput setaf 2`
+blue=`tput setaf 4`
+reset=`tput sgr0`
+
+# Notification
+echo "${blue}"
+echo "# Running pre-commit git hook."
+echo "=============================="
+echo "${reset}"
+
+# Flag counter
+make_tests_error=0
+merge_conflict=0
+
+make tests
+RESULT=$?
+
+if [[ $RESULT -ne 0 ]]; then
+    make_tests_error=1
+fi
+
+# Check for merge conflict markers
+# List all files added to commit
+files_changed=`git diff-index --diff-filter=ACMRT --cached --name-only HEAD -- | grep -E '\.php$|\.twig$|\.js$'`
+if [ -n "$files_changed" ]
+then
+  for FILE in $files_changed; do
+    # Find debugging function exists in file diff one by one.
+    pattern="(<<<<|====|>>>>)+.*(\n)?"
+    result_for_file=`grep -Ein "$pattern" $FILE`
+    if [ ! -z "$result_for_file" ]
+    then
+      if [ $merge_conflict -eq 0 ]
+      then
+        echo "${red}"
+        echo "# Merge confict marker(s) found in:"
+        echo "-----------------------------------${reset}"
+      fi
+      merge_conflict=1
+      echo $FILE
+    fi
+  done
+fi
+
+# Decision maker
+errors_found=$((make_tests_error+merge_conflict))
+if [ $errors_found -eq 0 ]
+then
+  echo "${green}"
+  echo "Clean code :) Your code is now committed !"
+  echo "${reset}"
+else
+  echo "${red}"
+  echo "The pre-commit git hook returns some errors. Correct them before trying to commit again or use the --no-verify option to bypass this hook."
+  echo "${reset}"
+  exit 1
+fi
+
+exit 0

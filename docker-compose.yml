@@ -1,0 +1,15 @@
+version: '3.9'
+services:
+    app:
+        build:
+            context: ./
+            dockerfile: ./docker/app/Dockerfile
+            args:
+                USER_ID: ${USER_ID}
+                GROUP_ID: ${GROUP_ID}
+                RUN_CONTEXT: local
+        container_name: ${COMPOSE_PROJECT_NAME}-app
+        volumes:
+            - .:/app
+        env_file:
+            - ./.env

@@ -1,0 +1,37 @@
+#!/bin/bash
+
+PREV_COMMIT=$1
+POST_COMMIT=$2
+
+if [[ '0000000000000000000000000000000000000000' == $PREV_COMMIT ]] ; then exit 0; fi
+
+NOCOLOR='\033[0m'
+REDCOLOR='\033[41m'
+
+if [[ -f .env ]]; then
+    DIFF=`git diff --shortstat $PREV_COMMIT..$POST_COMMIT .env.dist`
+    if [[ $DIFF != "" ]]; then
+        echo -e "$REDCOLOR .env.dist has changed. You must update your .env file accordingly $NOCOLOR"
+    fi
+fi
+
+if [[ -f docker/app/Dockerfile ]]; then
+    DIFF=`git diff --shortstat $PREV_COMMIT..$POST_COMMIT docker/app/Dockerfile`
+    if [[ $DIFF != "" ]]; then
+        echo -e "$REDCOLOR Dockerfile has changed. You must run : make docker $NOCOLOR"
+    fi
+fi
+
+if [[ -f composer.lock ]]; then
+    DIFF=`git diff --shortstat $PREV_COMMIT..$POST_COMMIT composer.lock`
+    if [[ $DIFF != "" ]]; then
+        echo -e "$REDCOLOR composer.lock has changed. You must run : make vendor $NOCOLOR"
+    fi
+fi
+
+if [[ -f package.json ]]; then
+    DIFF=`git diff --shortstat $PREV_COMMIT..$POST_COMMIT package.json`
+    if [[ $DIFF != "" ]]; then
+        echo -e "$REDCOLOR package.json has changed. You must run : make yarn $NOCOLOR"
+    fi
+fi
