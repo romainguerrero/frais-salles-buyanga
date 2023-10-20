@@ -1,12 +1,12 @@
 -include .env
 -include .env.local
 
-DOCKER                ?= docker
-DOCKER_RUN_WITH_ADMIN ?= $(DOCKER) run
-DOCKER_RUN            ?= $(DOCKER_RUN_WITH_ADMIN) --user=www-data:www-data
+DOCKER_COMPOSE        ?= docker compose
+RUN_WITH_ADMIN        ?= $(DOCKER_COMPOSE) run -T
+RUN                   ?= $(RUN_WITH_ADMIN) --user=www-data:www-data
 
-RUN_IN_APP            ?= $(DOCKER_RUN) --rm $(COMPOSE_PROJECT_NAME)-app /bin/bash -c
-RUN_IN_APP_WITH_ADMIN ?= $(DOCKER_RUN_WITH_ADMIN) --rm $(COMPOSE_PROJECT_NAME)-app /bin/bash -c
+RUN_IN_APP            ?= $(RUN) --rm app /bin/bash -c
+RUN_IN_APP_WITH_ADMIN ?= $(RUN_WITH_ADMIN) --rm app /bin/bash -c
 
 define main_title
 	@{ \

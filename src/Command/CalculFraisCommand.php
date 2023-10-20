@@ -6,25 +6,20 @@ namespace App\Command;
 
 use Google\Client;
 use Google\Service\Calendar;
-use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
-#[AsCommand(
-    name: 'calcul:frais',
-    description: 'Add a short description for your command',
-)]
 class CalculFraisCommand extends Command
 {
     private const CALENDAR_ID = 'c_ps56u1m0hb5qc46736vt2eaqkc@group.calendar.google.com';
 
     private const SALLES = [
-        'Mambocha' => ['pricePerHour' => 5, 'pricePerEvent' => 0],
+        'Mambocha' => ['pricePerHour' => 6, 'pricePerEvent' => 0],
         'Art Danse' => ['pricePerHour' => 20, 'pricePerEvent' => 0],
-        'Centre Social La Provence' => ['pricePerHour' => 0, 'pricePerEvent' => 22],
+        'Centre Social La Provence' => ['pricePerHour' => 10, 'pricePerEvent' => 0],
         'Z5' => ['pricePerHour' => 0, 'pricePerEvent' => 0],
         'Rock Caliente' => ['pricePerHour' => 0, 'pricePerEvent' => 0],
     ];
@@ -109,39 +104,51 @@ class CalculFraisCommand extends Command
             ];
 
             if (1 === preg_match('/mambocha/i', $event->getSummary()) || 1 === preg_match('/mambocha/i', $location)) {
-                $rowEvents['Mambocha']['events'][] = $rowEvent;
-                $rowEvents['Mambocha']['totalHours'] += $duration;
-                $rowEvents['Mambocha']['totalPrice'] += $duration * 5;
+                $salle = 'Mambocha';
+                $prixSalle = self::SALLES[$salle];
+                $rowEvents[$salle]['events'][] = $rowEvent;
+                $rowEvents[$salle]['totalHours'] += $duration;
+                $rowEvents[$salle]['totalPrice'] += $prixSalle['pricePerEvent'] + $duration * $prixSalle['pricePerHour'];
 
                 continue;
             }
 
             if (1 === preg_match('/art danse/i', $event->getSummary()) || 1 === preg_match('/art danse/i', $location) || 1 === preg_match('/grand rue/i', $location)) {
-                $rowEvents['Art Danse']['events'][] = $rowEvent;
-                $rowEvents['Art Danse']['totalHours'] += $duration;
-                $rowEvents['Art Danse']['totalPrice'] += $duration * 20;
+                $salle = 'Art Danse';
+                $prixSalle = self::SALLES[$salle];
+                $rowEvents[$salle]['events'][] = $rowEvent;
+                $rowEvents[$salle]['totalHours'] += $duration;
+                $rowEvents[$salle]['totalPrice'] += $prixSalle['pricePerEvent'] + $duration * $prixSalle['pricePerHour'];
 
                 continue;
             }
 
             if (1 === preg_match('/centre social/i', $event->getSummary()) || 1 === preg_match('/centre social/i', $location)) {
-                $rowEvents['Centre Social La Provence']['events'][] = $rowEvent;
-                $rowEvents['Centre Social La Provence']['totalHours'] += $duration;
-                $rowEvents['Centre Social La Provence']['totalPrice'] += 22;
+                $salle = 'Centre Social La Provence';
+                $prixSalle = self::SALLES[$salle];
+                $rowEvents[$salle]['events'][] = $rowEvent;
+                $rowEvents[$salle]['totalHours'] += $duration;
+                $rowEvents[$salle]['totalPrice'] += $prixSalle['pricePerEvent'] + $duration * $prixSalle['pricePerHour'];
 
                 continue;
             }
 
             if (1 === preg_match('/Z5/i', $event->getSummary()) || 1 === preg_match('/Z5/i', $location)) {
-                $rowEvents['Z5']['events'][] = $rowEvent;
-                $rowEvents['Z5']['totalHours'] += $duration;
+                $salle = 'Z5';
+                $prixSalle = self::SALLES[$salle];
+                $rowEvents[$salle]['events'][] = $rowEvent;
+                $rowEvents[$salle]['totalHours'] += $duration;
+                $rowEvents[$salle]['totalPrice'] += $prixSalle['pricePerEvent'] + $duration * $prixSalle['pricePerHour'];
 
                 continue;
             }
 
             if (1 === preg_match('/Rock Caliente/i', $event->getSummary()) || 1 === preg_match('/Rock Caliente/i', $location)) {
-                $rowEvents['Rock Caliente']['events'][] = $rowEvent;
-                $rowEvents['Rock Caliente']['totalHours'] += $duration;
+                $salle = 'Rock Caliente';
+                $prixSalle = self::SALLES[$salle];
+                $rowEvents[$salle]['events'][] = $rowEvent;
+                $rowEvents[$salle]['totalHours'] += $duration;
+                $rowEvents[$salle]['totalPrice'] += $prixSalle['pricePerEvent'] + $duration * $prixSalle['pricePerHour'];
 
                 continue;
             }
