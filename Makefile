@@ -2,23 +2,11 @@
 -include .env.local
 
 DOCKER                ?= docker
-DOCKER_EXEC           ?= $(DOCKER) exec --user=www-data:www-data
-DOCKER_RUN            ?= $(DOCKER) run --user=www-data:www-data
-DOCKER_COMPOSE        ?= docker-compose
-DOCKER_COMPOSE_EXEC   ?= $(DOCKER_COMPOSE) exec --user=www-data:www-data
-DOCKER_COMPOSE_RUN    ?= $(DOCKER_COMPOSE) run --user=www-data:www-data
+DOCKER_RUN_WITH_ADMIN ?= $(DOCKER) run
+DOCKER_RUN            ?= $(DOCKER_RUN_WITH_ADMIN) --user=www-data:www-data
 
-EXEC_IN_APP           ?= $(DOCKER_EXEC) $(COMPOSE_PROJECT_NAME)-app
-
-RUN_IN_APP            ?= $(DOCKER_COMPOSE_RUN) --no-deps --rm app /bin/bash -c
-RUN_IN_APP_WITH_ADMIN ?= $(DOCKER_COMPOSE) run --no-deps --rm app /bin/bash -c
-RUN_IN_APP_WITH_DEPS  ?= $(DOCKER_COMPOSE_RUN) --rm app /bin/bash -c
-
-PHP                   ?= $(EXEC_IN_APP) php
-COMPOSER              ?= $(PHP) -d memory_limit=-1 /usr/bin/composer --ansi
-SF_CONSOLE            ?= $(PHP) ./bin/console
-WEBPACK               ?= $(EXEC_IN_APP) ./node_modules/.bin/encore
-YARN                  ?= $(EXEC_IN_APP) yarn
+RUN_IN_APP            ?= $(DOCKER_RUN) --rm $(COMPOSE_PROJECT_NAME)-app /bin/bash -c
+RUN_IN_APP_WITH_ADMIN ?= $(DOCKER_RUN_WITH_ADMIN) --rm $(COMPOSE_PROJECT_NAME)-app /bin/bash -c
 
 define main_title
 	@{ \
@@ -46,37 +34,21 @@ endef
 install:
 	${MAKE} vendor acl
 
-run:
-	$(RUN_IN_APP) "bin/console calcul:frais"
+run: ## Run calculation of the current month
+	$(RUN_IN_APP) "bin/console calcul:frais --ansi --env=prod"
 
-run-previous:
-	$(RUN_IN_APP) "bin/console calcul:frais --previous-month"
-
-##@ Symfony
-
-cache-clear: ## Clear and warmup cache
-	$(call main_title,)
-	$(PHP) bin/console --ansi cache:clear
+run-previous: ## Run calculation of previous month
+	$(RUN_IN_APP) "bin/console calcul:frais --ansi --previous-month --env=prod"
 
 ##@ Interactive Commands
 
 terminal: ## Launch a bash terminal
 	$(call main_title,)
-	$(DOCKER_COMPOSE_EXEC) app /bin/bash
+	$(RUN_IN_APP) "/bin/bash"
 
 terminal-root: ## Launch a root bash terminal
 	$(call main_title,)
-	$(DOCKER_COMPOSE) exec app /bin/bash
-
-sf-console: ## Run interactive symfony command
-	$(call main_title,)
-	@read -p "command [options] [arguments]: " command; \
-	$(SF_CONSOLE) $$command;
-
-composer:  ## Run interactive composer command
-	$(call main_title,)
-	@read -p "command [options] [arguments]: " command; \
-	$(COMPOSER) $$command;
+	$(RUN_IN_APP_WITH_ADMIN) "/bin/bash"
 
 ##@ Utils
 
@@ -98,20 +70,20 @@ vendor: ## Composer install
 vendor: composer.json
 	$(call main_title,)
 	@if [ "$$APP_ENV" = "prod" ]; then \
-		$(COMPOSER) install --optimize-autoloader --no-progress --no-suggest --classmap-authoritative --no-interaction; \
+		$(RUN_IN_APP) "php -d memory_limit=-1 /usr/bin/composer --ansi install --optimize-autoloader --no-progress --no-suggest --classmap-authoritative --no-interaction" \
 	else \
-		$(COMPOSER) install; \
+		$(RUN_IN_APP) "php -d memory_limit=-1 /usr/bin/composer --ansi install"; \
 	fi
 
 ##@ Tests
 
 .PHONY: tests
 tests: ## Launch a set of tests
-tests: php-cs lint validate-composer-config phpstan phpunit
+tests: php-cs lint validate-composer-config phpstan
 
 lint: ## Lint Yaml files
 	$(call main_title,)
-	$(SF_CONSOLE) --ansi lint:yaml config *.yml --parse-tags
+	$(RUN_IN_APP) "bin/console --ansi lint:yaml config *.yml --parse-tags"
 
 validate-composer-config: ## Validate Composer config file
 	$(call main_title,)
@@ -123,24 +95,20 @@ else
 		# --no-check-all        Do not validate requires for overly strict/loose constraints
 		# --no-check-lock       Do not check if lock file is up to date
 		# --no-check-publish    Do not check for publish errors
-		$(COMPOSER) validate --strict --no-check-all
+		$(RUN_IN_APP) "php -d memory_limit=-1 /usr/bin/composer --ansi validate --strict --no-check-all"
 endif
 
 phpstan: ## Launch phpstan tests
 	$(call main_title,)
-	$(PHP) -d memory_limit=-1 vendor/bin/phpstan --ansi analyse --configuration=phpstan.neon --level=7 src
-
-phpunit: ## Launch phpunit tests
-	$(call main_title,)
-	$(EXEC_IN_APP) bash -c "APP_ENV=test php -d memory_limit=-1 bin/phpunit"
+	$(RUN_IN_APP) "php -d memory_limit=-1 vendor/bin/phpstan --ansi analyse --configuration=phpstan.neon --level=7 src"
 
 php-cs: ## Launch php-cs without fixing
 	$(call main_title,)
-	$(EXEC_IN_APP) vendor/bin/php-cs-fixer --ansi fix --show-progress=dots --diff --dry-run
+	$(RUN_IN_APP) "vendor/bin/php-cs-fixer --ansi fix --show-progress=dots --diff --dry-run"
 
 php-cs-fixer: ## Launch php-cs-fixer
 	$(call main_title,)
-	$(EXEC_IN_APP) vendor/bin/php-cs-fixer --ansi fix --show-progress=dots --diff
+	$(RUN_IN_APP) "vendor/bin/php-cs-fixer --ansi fix --show-progress=dots --diff"
 
 ##@ Helpers
 

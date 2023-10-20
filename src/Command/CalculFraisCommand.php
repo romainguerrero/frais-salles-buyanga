@@ -46,10 +46,13 @@ class CalculFraisCommand extends Command
         12 => 'Décembre',
     ];
 
+    private Client $client;
+
     private Calendar $calendarService;
 
-    public function __construct(private Client $client)
+    public function __construct(Client $client)
     {
+        $this->client = $client;
         $this->client->addScope(Calendar::CALENDAR_EVENTS_READONLY);
         $this->calendarService = new Calendar($this->client);
         parent::__construct();
@@ -58,6 +61,7 @@ class CalculFraisCommand extends Command
     protected function configure(): void
     {
         $this
+            ->setName('calcul:frais')
             ->addOption('previous-month', 'pm', InputOption::VALUE_NONE, 'Indique si on veut les informations du mois précédent')
         ;
     }
