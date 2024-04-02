@@ -32,7 +32,7 @@ endef
 
 # Install the project for docker
 install:
-	${MAKE} vendor acl
+	${MAKE} vendor
 
 run: ## Run calculation of the current month
 	$(RUN_IN_APP) "bin/console calcul:frais --ansi --env=prod"

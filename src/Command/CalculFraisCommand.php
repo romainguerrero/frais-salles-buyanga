@@ -24,7 +24,7 @@ class CalculFraisCommand extends Command
         'Rock Caliente' => ['pricePerHour' => 0, 'pricePerEvent' => 0],
     ];
 
-    private const MEMBRES_PAYANTS = 5;
+    private const MEMBRES_PAYANTS = 6;
 
     private const MONTHS = [
         1 => 'Janvier',
