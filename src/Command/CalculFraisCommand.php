@@ -190,12 +190,14 @@ class CalculFraisCommand extends Command
             );
         }
 
-        $io->success(['Total : '.implode('€ + ', $totalPrices).'€ = '.$total.'€', 'Par pers : '.$total.'€ / '.self::MEMBRES_PAYANTS.' = '.($total / self::MEMBRES_PAYANTS).'€']);
+        $totalPerPerson = ceil(round($total / self::MEMBRES_PAYANTS * 100)) / 100;
+
+        $io->success(['Total : '.implode('€ + ', $totalPrices).'€ = '.$total.'€', 'Par pers : '.$total.'€ / '.self::MEMBRES_PAYANTS.' = '.$totalPerPerson.'€']);
 
         $whatsappMessage[] = '';
         $whatsappMessage[] = '*Total*';
         $whatsappMessage[] = 'Total : '.implode('€ + ', $totalPrices).'€ = '.$total.'€';
-        $whatsappMessage[] = 'Par pers : '.$total.'€ / '.self::MEMBRES_PAYANTS.' = *'.($total / self::MEMBRES_PAYANTS).'€*';
+        $whatsappMessage[] = 'Par pers : '.$total.'€ / '.self::MEMBRES_PAYANTS.' = *'.$totalPerPerson.'€*';
 
         $io->title('Message à envoyer sur WhatsApp');
         $io->writeln($whatsappMessage);
