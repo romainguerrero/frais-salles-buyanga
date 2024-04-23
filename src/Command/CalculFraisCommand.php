@@ -143,7 +143,7 @@ class CalculFraisCommand extends Command
                 continue;
             }
 
-            if (1 === preg_match('/Rock Caliente/i', $event->getSummary()) || 1 === preg_match('/Rock Caliente/i', $location)) {
+            if (1 === preg_match('/Caliente/i', $event->getSummary()) || 1 === preg_match('/Caliente/i', $location)) {
                 $salle = 'Rock Caliente';
                 $prixSalle = self::SALLES[$salle];
                 $rowEvents[$salle]['events'][] = $rowEvent;
