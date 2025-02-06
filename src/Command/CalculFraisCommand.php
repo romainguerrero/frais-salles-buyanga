@@ -17,7 +17,7 @@ class CalculFraisCommand extends Command
     private const CALENDAR_ID = 'c_ps56u1m0hb5qc46736vt2eaqkc@group.calendar.google.com';
 
     private const SALLES = [
-        'Mambocha' => ['pricePerHour' => 6, 'pricePerEvent' => 0],
+        'Mambocha' => ['pricePerHour' => 11, 'pricePerEvent' => 0],
         'Art Danse' => ['pricePerHour' => 20, 'pricePerEvent' => 0],
         'Centre Social La Provence' => ['pricePerHour' => 10, 'pricePerEvent' => 0],
         'Z5' => ['pricePerHour' => 0, 'pricePerEvent' => 0],
@@ -160,13 +160,10 @@ class CalculFraisCommand extends Command
         $total = 0;
         $whatsappMessage = ['Frais salles '.self::MONTHS[(int) $timeMin->format('m')].' :'];
         foreach ($rowEvents as $place => $rowEventPlace) {
+            $nbEvents = \count($rowEventPlace['events']);
             $tarif = $rowEventPlace['pricePerHour'] > 0 ? $rowEventPlace['pricePerHour'].'€/h' : ($rowEventPlace['pricePerEvent'] > 0 ? $rowEventPlace['pricePerEvent'].'€/séance' : 'offert');
             $io->title('Répétitions à '.$place.' ('.$tarif.')');
-            $whatsappMessage[] = '';
-            $whatsappMessage[] = '*'.$place.' ('.$tarif.')*';
-            $whatsappMessage[] = \count($rowEventPlace['events']).' répétitions pour un total de '.$rowEventPlace['totalHours'].'h';
-            $whatsappMessage[] = 'Tarif : '.$rowEventPlace['totalPrice'].'€';
-            if (0 === \count($rowEventPlace['events'])) {
+            if (0 === $nbEvents) {
                 $io->text('Aucune répétition pendant le mois');
 
                 continue;
@@ -175,11 +172,16 @@ class CalculFraisCommand extends Command
                 ['Titre', 'Jour', 'Début', 'Fin', 'Durée'],
                 $rowEventPlace['events']
             );
-            $io->text('Tarif pour '.\count($rowEventPlace['events']).' répétitions et un total de '.$rowEventPlace['totalHours'].'h : '.$rowEventPlace['totalPrice'].'€');
+            $io->text('Tarif pour '.$nbEvents.' répétition'.(1 === $nbEvents ? '' : 's').' et un total de '.$rowEventPlace['totalHours'].'h : '.$rowEventPlace['totalPrice'].'€');
             if ($rowEventPlace['totalPrice'] > 0) {
                 $totalPrices[] = $rowEventPlace['totalPrice'];
                 $total += $rowEventPlace['totalPrice'];
             }
+
+            $whatsappMessage[] = '';
+            $whatsappMessage[] = '*'.$place.' ('.$tarif.')*';
+            $whatsappMessage[] = $nbEvents.' répétition'.(1 === $nbEvents ? '' : 's').' pour un total de '.$rowEventPlace['totalHours'].'h';
+            $whatsappMessage[] = 'Tarif : '.$rowEventPlace['totalPrice'].'€';
         }
 
         if (\count($unknownEvents) > 0) {
