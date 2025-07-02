@@ -51,4 +51,4 @@ yarn-error.log
 /.env.prod.*
 ###< PROD ENV FILES ###
 
-frais-de-salles-buyanga-ca30f4490e7f.json
+google_auth_config.json

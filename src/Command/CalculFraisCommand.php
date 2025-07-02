@@ -14,18 +14,6 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 
 class CalculFraisCommand extends Command
 {
-    private const CALENDAR_ID = 'c_ps56u1m0hb5qc46736vt2eaqkc@group.calendar.google.com';
-
-    private const SALLES = [
-        'Mambocha' => ['pricePerHour' => 11, 'pricePerEvent' => 0],
-        'Art Danse' => ['pricePerHour' => 20, 'pricePerEvent' => 0],
-        'Centre Social La Provence' => ['pricePerHour' => 10, 'pricePerEvent' => 0],
-        'Z5' => ['pricePerHour' => 0, 'pricePerEvent' => 0],
-        'Rock Caliente' => ['pricePerHour' => 0, 'pricePerEvent' => 0],
-    ];
-
-    private const MEMBRES_PAYANTS = 6;
-
     private const MONTHS = [
         1 => 'Janvier',
         2 => 'Février',
@@ -45,11 +33,21 @@ class CalculFraisCommand extends Command
 
     private Calendar $calendarService;
 
+    private string $googleCalendarId;
+
+    private int $membresPayants;
+
+    private array $salles;
+
     public function __construct(Client $client)
     {
         $this->client = $client;
         $this->client->addScope(Calendar::CALENDAR_EVENTS_READONLY);
         $this->calendarService = new Calendar($this->client);
+        $this->googleCalendarId = getenv('GOOGLE_CALENDAR_ID');
+        $this->membresPayants = (int) getenv('MEMBRES_PAYANTS');
+        $this->salles = json_decode(getenv('SALLES_JSON'), true);;
+
         parent::__construct();
     }
 
@@ -71,7 +69,7 @@ class CalculFraisCommand extends Command
 
         $io->info('Récupération des répétitions à partir du '.$timeMin->format('d/m/Y').' et avant le '.$timeMax->format('d/m/Y'));
 
-        $events = $this->calendarService->events->listEvents(self::CALENDAR_ID, [
+        $events = $this->calendarService->events->listEvents($this->googleCalendarId, [
             'singleEvents' => true,
             'q' => 'Répétition',
             'orderBy' => 'startTime',
@@ -80,7 +78,7 @@ class CalculFraisCommand extends Command
         ]);
 
         $rowEvents = [];
-        foreach (self::SALLES as $salle => $salleData) {
+        foreach ($this->salles as $salle => $salleData) {
             $rowEvents[$salle] = array_merge($salleData, ['events' => [], 'totalHours' => 0, 'totalPrice' => 0]);
         }
         $unknownEvents = [];
@@ -105,7 +103,7 @@ class CalculFraisCommand extends Command
 
             if (1 === preg_match('/mambocha/i', $event->getSummary()) || 1 === preg_match('/mambocha/i', $location)) {
                 $salle = 'Mambocha';
-                $prixSalle = self::SALLES[$salle];
+                $prixSalle = $this->salles[$salle];
                 $rowEvents[$salle]['events'][] = $rowEvent;
                 $rowEvents[$salle]['totalHours'] += $duration;
                 $rowEvents[$salle]['totalPrice'] += $prixSalle['pricePerEvent'] + $duration * $prixSalle['pricePerHour'];
@@ -115,7 +113,7 @@ class CalculFraisCommand extends Command
 
             if (1 === preg_match('/art danse/i', $event->getSummary()) || 1 === preg_match('/art danse/i', $location) || 1 === preg_match('/grand rue/i', $location)) {
                 $salle = 'Art Danse';
-                $prixSalle = self::SALLES[$salle];
+                $prixSalle = $this->salles[$salle];
                 $rowEvents[$salle]['events'][] = $rowEvent;
                 $rowEvents[$salle]['totalHours'] += $duration;
                 $rowEvents[$salle]['totalPrice'] += $prixSalle['pricePerEvent'] + $duration * $prixSalle['pricePerHour'];
@@ -125,7 +123,7 @@ class CalculFraisCommand extends Command
 
             if (1 === preg_match('/centre social/i', $event->getSummary()) || 1 === preg_match('/centre social/i', $location)) {
                 $salle = 'Centre Social La Provence';
-                $prixSalle = self::SALLES[$salle];
+                $prixSalle = $this->salles[$salle];
                 $rowEvents[$salle]['events'][] = $rowEvent;
                 $rowEvents[$salle]['totalHours'] += $duration;
                 $rowEvents[$salle]['totalPrice'] += $prixSalle['pricePerEvent'] + $duration * $prixSalle['pricePerHour'];
@@ -135,7 +133,7 @@ class CalculFraisCommand extends Command
 
             if (1 === preg_match('/Z5/i', $event->getSummary()) || 1 === preg_match('/Z5/i', $location)) {
                 $salle = 'Z5';
-                $prixSalle = self::SALLES[$salle];
+                $prixSalle = $this->salles[$salle];
                 $rowEvents[$salle]['events'][] = $rowEvent;
                 $rowEvents[$salle]['totalHours'] += $duration;
                 $rowEvents[$salle]['totalPrice'] += $prixSalle['pricePerEvent'] + $duration * $prixSalle['pricePerHour'];
@@ -145,7 +143,7 @@ class CalculFraisCommand extends Command
 
             if (1 === preg_match('/Caliente/i', $event->getSummary()) || 1 === preg_match('/Caliente/i', $location)) {
                 $salle = 'Rock Caliente';
-                $prixSalle = self::SALLES[$salle];
+                $prixSalle = $this->salles[$salle];
                 $rowEvents[$salle]['events'][] = $rowEvent;
                 $rowEvents[$salle]['totalHours'] += $duration;
                 $rowEvents[$salle]['totalPrice'] += $prixSalle['pricePerEvent'] + $duration * $prixSalle['pricePerHour'];
@@ -192,14 +190,14 @@ class CalculFraisCommand extends Command
             );
         }
 
-        $totalPerPerson = ceil(round($total / self::MEMBRES_PAYANTS * 100)) / 100;
+        $totalPerPerson = ceil(round($total / $this->membresPayants * 100)) / 100;
 
-        $io->success(['Total : '.implode('€ + ', $totalPrices).'€ = '.$total.'€', 'Par pers : '.$total.'€ / '.self::MEMBRES_PAYANTS.' = '.$totalPerPerson.'€']);
+        $io->success(['Total : '.implode('€ + ', $totalPrices).'€ = '.$total.'€', 'Par pers : '.$total.'€ / '.$this->membresPayants.' = '.$totalPerPerson.'€']);
 
         $whatsappMessage[] = '';
         $whatsappMessage[] = '*Total*';
         $whatsappMessage[] = 'Total : '.implode('€ + ', $totalPrices).'€ = '.$total.'€';
-        $whatsappMessage[] = 'Par pers : '.$total.'€ / '.self::MEMBRES_PAYANTS.' = *'.$totalPerPerson.'€*';
+        $whatsappMessage[] = 'Par pers : '.$total.'€ / '.$this->membresPayants.' = *'.$totalPerPerson.'€*';
 
         $io->title('Message à envoyer sur WhatsApp');
         $io->writeln($whatsappMessage);

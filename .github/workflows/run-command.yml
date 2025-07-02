@@ -1,0 +1,49 @@
+name: Lancer le calcul des frais
+
+on:
+  workflow_dispatch:
+    inputs:
+      period:
+        description: 'Période à exécuter'
+        required: true
+        type: choice
+        options:
+          - Mois courant
+          - Mois précédent
+
+jobs:
+  calcul-frais:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@v3
+
+      - name: Créer le fichier google_auth_config.json
+        run: |
+          cat <<EOF > google_auth_config.json
+          ${{ secrets.GOOGLE_AUTH_CONFIG_JSON_CONTENT }}
+          EOF
+
+      - name: Cache des dépendances Composer
+        uses: actions/cache@v3
+        with:
+          path: vendor
+          key: ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
+
+      - name: Installation des dépendances
+        run: php -d memory_limit=-1 $(which composer) install --no-dev --optimize-autoloader --ansi
+
+      - name: Exécution du calcul de frais
+        env:
+          GOOGLE_CALENDAR_ID: ${{ secrets.GOOGLE_CALENDAR_ID }}
+          SALLES_JSON: ${{ vars.SALLES_JSON }}
+          MEMBRES_PAYANTS: ${{ vars.MEMBRES_PAYANTS }}
+        run: |
+          CMD="php bin/console calcul:frais --ansi --env=prod"
+          if [ "${{ github.event.inputs.period }}" = "Mois précédent" ]; then
+            CMD="$CMD --previous-month"
+          fi
+          $CMD
